@@ -5,6 +5,7 @@
 - Tätigkeitsliste
 - Entscheidungsdokument
 - Evtl Anfang bauen
+- Lösung für LEDs haben
 
 ## 02.12.2019:
 - Bauen 
