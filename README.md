@@ -19,5 +19,3 @@
 - Korrekturen Dokumente
 
 **Immer**: Arbeitsjournal:
-
-
