@@ -3,7 +3,7 @@
 // 1 = green
 // 2 = red
 // 3 = blink
-int ArrayForActiveLEDs[9] = {1, 0, 0, 0, 0, 0, 0, 0, 0};
+int ArrayForActiveLEDs[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 int CurrentLED = 8;
 int pinButtonLedSwitch = 2;
 int pinButtonLedConfirm = 3;
@@ -17,6 +17,10 @@ int ClockPinGREEN = 12;
 int DataPinGREEN = 10;
 
 bool isGreen = true;
+int byteOnGreen;
+byte byteOffGreen;
+byte byteOnRed;
+byte byteOffRed;
 
 void setup()
 {
@@ -33,7 +37,7 @@ void setup()
     pinMode(5, OUTPUT); // red OR
     pinMode(6, OUTPUT); // green OR
     // buttons, 2 = next, 3 = confirm
-    pinMode(2,INPUT_PULLUP);
+    pinMode(2, INPUT_PULLUP);
     pinMode(3, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(2), ButtonLedSwitch, FALLING);
     attachInterrupt(digitalPinToInterrupt(3), ButtonLedConfirm, FALLING);
@@ -49,12 +53,12 @@ void Blink()
     if (isGreen)
     {
         digitalWrite(LatchPinGREEN, LOW);
-        shiftOut(DataPinGREEN, ClockPinGREEN, 0b00000000);
+        shiftOut(DataPinGREEN, ClockPinGREEN, byteOffGreen);
         digitalWrite(LatchPinGREEN, HIGH);
         digitalWrite(6, 0);
         delay(1000);
         digitalWrite(LatchPinGREEN, LOW);
-        shiftOut(DataPinGREEN, ClockPinGREEN, 0b111111111);
+        shiftOut(DataPinGREEN, ClockPinGREEN, byteOnGreen);
         digitalWrite(LatchPinGREEN, HIGH);
         digitalWrite(6, ArrayForActiveLEDs[0]);
         delay(1000);
@@ -62,12 +66,12 @@ void Blink()
     else
     {
         digitalWrite(LatchPinRED, LOW);
-        shiftOut(DataPinRED, ClockPinRED, 0b00000000);
+        shiftOut(DataPinRED, ClockPinRED, byteOffRed);
         digitalWrite(LatchPinRED, HIGH);
         digitalWrite(5, 0);
         delay(1000);
         digitalWrite(LatchPinRED, LOW);
-        shiftOut(DataPinRED, ClockPinRED, 0b111111111);
+        shiftOut(DataPinRED, ClockPinRED, byteOnRed);
         digitalWrite(LatchPinRED, HIGH);
         digitalWrite(5, ArrayForActiveLEDs[0]);
         delay(1000);
@@ -75,7 +79,37 @@ void Blink()
 }
 void ButtonLedSwitch()
 {
-    // if currentled > < 0,8, --> set up, down else --
+    int nextLED = FindNextLED();
+    ArrayForActiveLEDs[nextLED] = 3;
+
+    if (nextLED == 9)
+    {
+        // blink all
+    }
+    ParseArrayToString(isGreen);
+}
+
+int FindNextLED()
+{
+    int led = CurrentLED;
+    for (int i = 0; i < 9; i++)
+    {
+        if (ArrayForActiveLEDs[led] != 0)
+        {
+            if (led == 0)
+            {
+                led = 8;
+            }
+            else
+            {
+                led--;
+            }
+        }
+        Serial.println(led);
+    }
+    ArrayForActiveLEDs[CurrentLED] = 0;
+    CurrentLED = led;
+    return led;
 }
 
 void ButtonLedConfirm()
@@ -92,7 +126,75 @@ void ButtonLedConfirm()
         isGreen = true;
         win = (CheckForWin(ArrayForActiveLEDs, 2));
     }
-    Serial.print('a');
+    Serial.println("Confirmed");
+}
+
+void ParseArrayToString(bool isGreen)
+{
+    String byteStringOnGreen = "";
+    String byteStringOffGreen = "";
+    String byteStringOnRed = "";
+    String byteStringOffRed = "";
+    if (isGreen)
+    {
+        for (int i = 0; i < 9; i++)
+        {
+            if (ArrayForActiveLEDs[i] == 0)
+            {
+                byteStringOnGreen += '0';
+                byteStringOffGreen += '0';
+            }
+            if (ArrayForActiveLEDs[i] == 1)
+            {
+                byteStringOnGreen += '1';
+                byteStringOffGreen += '1';
+            }
+            if (ArrayForActiveLEDs[i] == 2)
+            {
+                byteStringOnGreen += '0';
+                byteStringOffGreen += '0';
+            }
+            if (ArrayForActiveLEDs[i] == 3)
+            {
+                byteStringOnGreen += '1';
+                byteStringOffGreen += '0';
+            }
+        }
+    }
+    if (!isGreen)
+    {
+        for (int i = 0; i < 9; i++)
+        {
+            if (ArrayForActiveLEDs[i] == 0)
+            {
+                byteStringOnRed += '0';
+                byteStringOffRed += '0';
+            }
+            if (ArrayForActiveLEDs[i] == 1)
+            {
+                byteStringOnRed += '0';
+                byteStringOffRed += '0';
+            }
+            if (ArrayForActiveLEDs[i] == 2)
+            {
+                byteStringOnRed += '1';
+                byteStringOffRed += '1';
+            }
+            if (ArrayForActiveLEDs[i] == 3)
+            {
+                byteStringOnRed += '1';
+                byteStringOffRed += '0';
+            }
+        }
+    }
+int a = atoi( byteStringOffGreen.c_str() );
+
+    byteOffGreen = a;
+    Serial.println(byteOffGreen + 'g');
+    /*byteOffGreen = PrintBitsSimple(byteStringOffGreen);
+    byteOnGreen = PrintBitsSimple(byteStringOnGreen);
+    byteOffRed = PrintBitsSimple(byteStringOffRed);
+    byteOnRed = PrintBitsSimple(byteStringOnRed);*/
 }
 
 // the heart of the program
@@ -147,37 +249,37 @@ void shiftOut(int myDataPin, int myClockPin, byte myDataOut)
 }
 
 bool CheckForWin(int array[9], int color)
-{ /*
-    if (array[8] == color) && array[7] == color) && array[6] == color))
-        {
-            return true; // UUU
-        }
-    else if (array[2] == color) && array[5] == color) && array[8] == color))
-        {
-            return true; // LLL
-        }
-    else if (array[0] == color) && array[1] == color) && array[2] == color))
-        {
-            return true; // OOO
-        }
-    else if (array[0] == color) && array[3] == color) && array[6] == color))
-        {
-            return true; // RRR
-        }
-    else if (array[1] == color) && array[4] == color) && array[7] == color))
-        {
-            return true; // MMM ver
-        }
-    else if (array[3] == color) && array[4] == color) && array[5] == color))
-        {
-            return true; // MMM hor
-        }
-    else if (array[0] == color) && array[4] == color) && array[8] == color))
-        {
-            return true; // OR-UL diagonal
-        }
-    else if (array[2] == color) && array[4] == color) && array[6] == color))
-        {
-            return true; // OL-UR diagonal
-        }*/
+{
+    if (array[8] == color && array[7] == color && array[6] == color)
+    {
+        return true; // UUU
+    }
+    else if (array[2] == color && array[5] == color && array[8] == color)
+    {
+        return true; // LLL
+    }
+    else if (array[0] == color && array[1] == color && array[2] == color)
+    {
+        return true; // OOO
+    }
+    else if (array[0] == color && array[3] == color && array[6] == color)
+    {
+        return true; // RRR
+    }
+    else if (array[1] == color && array[4] == color && array[7] == color)
+    {
+        return true; // MMM ver
+    }
+    else if (array[3] == color && array[4] == color && array[5] == color)
+    {
+        return true; // MMM hor
+    }
+    else if (array[0] == color && array[4] == color && array[8] == color)
+    {
+        return true; // OR-UL diagonal
+    }
+    else if (array[2] == color && array[4] == color && array[6] == color)
+    {
+        return true; // OL-UR diagonal
+    }
 }
