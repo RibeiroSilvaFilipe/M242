@@ -37,3 +37,11 @@ winnerFunc(array ArrayForActiveLEDs){
     blink LED3
 }
 */
+
+
+
+
+/*
+ArrayForActivePins[9](depending on the single states, 
+pins will be jumped in selecting process)
+*/
