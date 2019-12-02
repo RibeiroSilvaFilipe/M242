@@ -1,13 +1,20 @@
 // Array begins top right to bottom left
+// 0 = off
+// 1 = green
+// 2 = red
+// 3 = blink
 int ArrayForActiveLEDs[9] = {1, 0, 0, 0, 0, 0, 0, 0, 0};
+int CurrentLED = 8;
+int pinButtonLedSwitch = 2;
+int pinButtonLedConfirm = 3;
 
-int latchPinRED = 8;
-int clockPinRED = 13;
-int dataPinRED = 11;
+int LatchPinRED = 8;
+int ClockPinRED = 13;
+int DataPinRED = 11;
 
-int latchPinGREEN = 7;
-int clockPinGREEN = 12;
-int dataPinGREEN = 10;
+int LatchPinGREEN = 7;
+int ClockPinGREEN = 12;
+int DataPinGREEN = 10;
 
 bool isGreen = true;
 
@@ -15,60 +22,77 @@ void setup()
 {
     Serial.begin(9600);
     // shift red
-    pinMode(latchPinRED, OUTPUT);
-    pinMode(dataPinRED, OUTPUT);
-    pinMode(clockPinRED, OUTPUT);
+    pinMode(LatchPinGREEN, OUTPUT);
+    pinMode(DataPinRED, OUTPUT);
+    pinMode(ClockPinRED, OUTPUT);
     // shift green
-    pinMode(latchPinGREEN, OUTPUT);
-    pinMode(dataPinGREEN, OUTPUT);
-    pinMode(clockPinGREEN, OUTPUT);
+    pinMode(LatchPinGREEN, OUTPUT);
+    pinMode(DataPinGREEN, OUTPUT);
+    pinMode(ClockPinGREEN, OUTPUT);
     // single leds
     pinMode(5, OUTPUT); // red OR
     pinMode(6, OUTPUT); // green OR
-    // buttons, 3 = next, 4 = confirm
-    attachInterrupt(0, ButtonLedSwitch, CHANGE);
-    attachInterrupt(1, ButtonLedConfirm, CHANGE);
+    // buttons, 2 = next, 3 = confirm
+    pinMode(2,INPUT_PULLUP);
+    pinMode(3, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(2), ButtonLedSwitch, FALLING);
+    attachInterrupt(digitalPinToInterrupt(3), ButtonLedConfirm, FALLING);
 }
 
 void loop()
 {
+    Blink();
+}
+
+void Blink()
+{
     if (isGreen)
     {
-        digitalWrite(latchPinGREEN, LOW);
-        shiftOut(dataPinGREEN, clockPinGREEN, 0b111111111);
-        digitalWrite(latchPinGREEN, HIGH);
-        digitalWrite(6, ArrayForActiveLEDs[0]);
-        delay(1000);
-        digitalWrite(latchPinGREEN, LOW);
-        shiftOut(dataPinGREEN, clockPinGREEN, 0b00000000);
-        digitalWrite(latchPinGREEN, HIGH);
+        digitalWrite(LatchPinGREEN, LOW);
+        shiftOut(DataPinGREEN, ClockPinGREEN, 0b00000000);
+        digitalWrite(LatchPinGREEN, HIGH);
         digitalWrite(6, 0);
+        delay(1000);
+        digitalWrite(LatchPinGREEN, LOW);
+        shiftOut(DataPinGREEN, ClockPinGREEN, 0b111111111);
+        digitalWrite(LatchPinGREEN, HIGH);
+        digitalWrite(6, ArrayForActiveLEDs[0]);
         delay(1000);
     }
     else
     {
-        digitalWrite(latchPinGREEN, LOW);
-        shiftOut(dataPinGREEN, clockPinGREEN, 0b111111111);
-        digitalWrite(latchPinGREEN, HIGH);
-        digitalWrite(6, ArrayForActiveLEDs[0]);
+        digitalWrite(LatchPinRED, LOW);
+        shiftOut(DataPinRED, ClockPinRED, 0b00000000);
+        digitalWrite(LatchPinRED, HIGH);
+        digitalWrite(5, 0);
         delay(1000);
-        digitalWrite(latchPinGREEN, LOW);
-        shiftOut(dataPinGREEN, clockPinGREEN, 0b00000000);
-        digitalWrite(latchPinGREEN, HIGH);
-        digitalWrite(6, 0);
+        digitalWrite(LatchPinRED, LOW);
+        shiftOut(DataPinRED, ClockPinRED, 0b111111111);
+        digitalWrite(LatchPinRED, HIGH);
+        digitalWrite(5, ArrayForActiveLEDs[0]);
         delay(1000);
     }
 }
-
-void ButtonLedSwitch(){
-
+void ButtonLedSwitch()
+{
+    // if currentled > < 0,8, --> set up, down else --
 }
 
-void ButtonLedConfirm(){
-    if (CheckForWin(ArrayForActiveLEDs))
+void ButtonLedConfirm()
+{
+    bool win = false;
+
+    if (isGreen)
     {
-        // allahu akbar
+        isGreen = false;
+        win = (CheckForWin(ArrayForActiveLEDs, 1));
     }
+    else
+    {
+        isGreen = true;
+        win = (CheckForWin(ArrayForActiveLEDs, 2));
+    }
+    Serial.print('a');
 }
 
 // the heart of the program
@@ -122,30 +146,38 @@ void shiftOut(int myDataPin, int myClockPin, byte myDataOut)
     digitalWrite(myClockPin, 0);
 }
 
-bool CheckForWin(int array[9])
-{
-    switch (1)
-    {
-        //green
-        if (array[8] == 1 && array[7] == 1 && array[7] == 1)
+bool CheckForWin(int array[9], int color)
+{ /*
+    if (array[8] == color) && array[7] == color) && array[6] == color))
+        {
             return true; // UUU
-    /*case array{0,0,1,0,0,1,0,0,1}: return true; // LLL
-    case array{1,1,1,0,0,0,0,0,0}: return true; // OOO
-    case array{1,0,0,1,0,0,1,0,0}: return true; // RRR
-    case array{0,1,0,0,1,0,0,1,0}: return true; // MMM vertikal
-    case array{0,0,0,1,1,1,0,0,0}: return true; // MMM horizontal
-    case array{1,0,0,0,1,0,0,0,1}: return true; // OR-UL diagonal
-    case array{0,0,1,0,1,0,1,0,0}: return true; // OL-UR diagonal
-    //Red
-    case array{0,0,0,0,0,0,2,2,2}: return true; // UUU
-    case array{0,0,2,0,0,2,0,0,2}: return true; // LLL
-    case array{2,2,2,0,0,0,0,0,0}: return true; // OOO
-    case array{2,0,0,2,0,0,2,0,0}: return true; // RRR
-    case array{0,2,0,0,2,0,0,2,0}: return true; // MMM vertikal
-    case array{0,0,0,2,2,2,0,0,0}: return true; // MMM horizontal
-    case array{2,0,0,0,2,0,0,0,2}: return true; // OR-UL diagonal
-    case array{0,0,2,0,2,0,2,0,0}: return true; // OL-UR diagonal*/
-    default:
-        return false;
-    }
+        }
+    else if (array[2] == color) && array[5] == color) && array[8] == color))
+        {
+            return true; // LLL
+        }
+    else if (array[0] == color) && array[1] == color) && array[2] == color))
+        {
+            return true; // OOO
+        }
+    else if (array[0] == color) && array[3] == color) && array[6] == color))
+        {
+            return true; // RRR
+        }
+    else if (array[1] == color) && array[4] == color) && array[7] == color))
+        {
+            return true; // MMM ver
+        }
+    else if (array[3] == color) && array[4] == color) && array[5] == color))
+        {
+            return true; // MMM hor
+        }
+    else if (array[0] == color) && array[4] == color) && array[8] == color))
+        {
+            return true; // OR-UL diagonal
+        }
+    else if (array[2] == color) && array[4] == color) && array[6] == color))
+        {
+            return true; // OL-UR diagonal
+        }*/
 }

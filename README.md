@@ -4,7 +4,7 @@
 - Konzept
 - Tätigkeitsliste
 - Entscheidungsdokument
-- Evtl Anfang bauen
+- Evtl Anfang bauen 
 - **Lösung für LEDs haben**
 
 ## 02.12.2019:
