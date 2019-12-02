@@ -9,6 +9,8 @@ int latchPinGREEN = 7;
 int clockPinGREEN = 12;
 int dataPinGREEN = 10;
 
+bool isGreen = true;
+
 void setup()
 {
     Serial.begin(9600);
@@ -24,22 +26,45 @@ void setup()
     pinMode(5, OUTPUT); // red OR
     pinMode(6, OUTPUT); // green OR
     // buttons, 3 = next, 4 = confirm
-    pinMode(3, INPUT);
-    pinMode(4, INPUT);
+    attachInterrupt(0, ButtonLedSwitch, CHANGE);
+    attachInterrupt(1, ButtonLedConfirm, CHANGE);
 }
 
 void loop()
 {
-    digitalWrite(latchPinGREEN, LOW);
-    shiftOut(dataPinGREEN, clockPinGREEN, 0b111111111);
-    digitalWrite(latchPinGREEN, HIGH);
-    digitalWrite(6, ArrayForActiveLEDs[0]);
-    delay(1000);
-    digitalWrite(latchPinGREEN, LOW);
-    shiftOut(dataPinGREEN, clockPinGREEN, 0b00000000);
-    digitalWrite(latchPinGREEN, HIGH);
-    digitalWrite(6, 0);
-    delay(1000);
+    if (isGreen)
+    {
+        digitalWrite(latchPinGREEN, LOW);
+        shiftOut(dataPinGREEN, clockPinGREEN, 0b111111111);
+        digitalWrite(latchPinGREEN, HIGH);
+        digitalWrite(6, ArrayForActiveLEDs[0]);
+        delay(1000);
+        digitalWrite(latchPinGREEN, LOW);
+        shiftOut(dataPinGREEN, clockPinGREEN, 0b00000000);
+        digitalWrite(latchPinGREEN, HIGH);
+        digitalWrite(6, 0);
+        delay(1000);
+    }
+    else
+    {
+        digitalWrite(latchPinGREEN, LOW);
+        shiftOut(dataPinGREEN, clockPinGREEN, 0b111111111);
+        digitalWrite(latchPinGREEN, HIGH);
+        digitalWrite(6, ArrayForActiveLEDs[0]);
+        delay(1000);
+        digitalWrite(latchPinGREEN, LOW);
+        shiftOut(dataPinGREEN, clockPinGREEN, 0b00000000);
+        digitalWrite(latchPinGREEN, HIGH);
+        digitalWrite(6, 0);
+        delay(1000);
+    }
+}
+
+void ButtonLedSwitch(){
+
+}
+
+void ButtonLedConfirm(){
     if (CheckForWin(ArrayForActiveLEDs))
     {
         // allahu akbar
