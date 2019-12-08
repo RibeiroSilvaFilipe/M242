@@ -5,8 +5,8 @@
 // 3 = blink
 int ArrayForActiveLEDs[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 int CurrentLED = 8;
-int pinButtonLedSwitch = 2;
-int pinButtonLedConfirm = 3;
+int PinButtonLedSwitch = 2;
+int PinButtonLedConfirm = 3;
 
 int LatchPinRED = 8;
 int ClockPinRED = 13;
@@ -16,11 +16,12 @@ int LatchPinGREEN = 7;
 int ClockPinGREEN = 12;
 int DataPinGREEN = 10;
 
-bool isGreen = true;
-int byteOnGreen;
-byte byteOffGreen;
-byte byteOnRed;
-byte byteOffRed;
+bool Led9 = false;
+bool IsGreen = true;
+int ByteOnGreen;
+int ByteOffGreen;
+int ByteOnRed;
+int ByteOffRed;
 
 void setup()
 {
@@ -187,14 +188,10 @@ void ParseArrayToString(bool isGreen)
             }
         }
     }
-int a = atoi( byteStringOffGreen.c_str() );
-
-    byteOffGreen = a;
-    Serial.println(byteOffGreen + 'g');
-    /*byteOffGreen = PrintBitsSimple(byteStringOffGreen);
-    byteOnGreen = PrintBitsSimple(byteStringOnGreen);
-    byteOffRed = PrintBitsSimple(byteStringOffRed);
-    byteOnRed = PrintBitsSimple(byteStringOnRed);*/
+    ByteOffGreen = atoi( byteStringOffGreen.c_str() );
+    ByteOnGreen = atoi( byteStringOnGreen.c_str() );
+    ByteOffRed = atoi( byteStringOffRed.c_str() );
+    ByteOnRed = atoi( byteStringOnRed.c_str() );
 }
 
 // the heart of the program
