@@ -1,13 +1,12 @@
 // Array begins top right to bottom left
-
 // 0 = off
 // 1 = green
 // 2 = red
 // 3 = blink
 int ArrayForActiveLEDs[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 int CurrentLED = 8;
-int pinButtonLedSwitch = 2;
-int pinButtonLedConfirm = 3;
+int PinButtonLedSwitch = 2;
+int PinButtonLedConfirm = 3;
 
 int LatchPinRED = 8;
 int ClockPinRED = 13;
@@ -17,30 +16,17 @@ int LatchPinGREEN = 7;
 int ClockPinGREEN = 12;
 int DataPinGREEN = 10;
 
-bool isGreen = true;
-int byteOnGreen;
-byte byteOffGreen;
-byte byteOnRed;
-byte byteOffRed;
-=======
-int ArrayForActiveLEDs[9] = {1, 0, 0, 0, 0, 0, 0, 0, 0};
-
-int latchPinRED = 8;
-int clockPinRED = 13;
-int dataPinRED = 11;
-
-int latchPinGREEN = 7;
-int clockPinGREEN = 12;
-int dataPinGREEN = 10;
-
-bool isGreen = true;
-
+bool Led9 = false;
+bool IsGreen = true;
+int ByteOnGreen;
+int ByteOffGreen;
+int ByteOnRed;
+int ByteOffRed;
 
 void setup()
 {
     Serial.begin(9600);
     // shift red
-
     pinMode(LatchPinGREEN, OUTPUT);
     pinMode(DataPinRED, OUTPUT);
     pinMode(ClockPinRED, OUTPUT);
@@ -56,40 +42,24 @@ void setup()
     pinMode(3, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(2), ButtonLedSwitch, FALLING);
     attachInterrupt(digitalPinToInterrupt(3), ButtonLedConfirm, FALLING);
-=======
-    pinMode(latchPinRED, OUTPUT);
-    pinMode(dataPinRED, OUTPUT);
-    pinMode(clockPinRED, OUTPUT);
-    // shift green
-    pinMode(latchPinGREEN, OUTPUT);
-    pinMode(dataPinGREEN, OUTPUT);
-    pinMode(clockPinGREEN, OUTPUT);
-    // single leds
-    pinMode(5, OUTPUT); // red OR
-    pinMode(6, OUTPUT); // green OR
-    // buttons, 3 = next, 4 = confirm
-    attachInterrupt(0, ButtonLedSwitch, CHANGE);
-    attachInterrupt(1, ButtonLedConfirm, CHANGE);
-
 }
 
 void loop()
 {
-
     Blink();
 }
 
 void Blink()
 {
-    if (isGreen)
+    if (IsGreen)
     {
         digitalWrite(LatchPinGREEN, LOW);
-        shiftOut(DataPinGREEN, ClockPinGREEN, byteOffGreen);
+        shiftOut(DataPinGREEN, ClockPinGREEN, ByteOffGreen);
         digitalWrite(LatchPinGREEN, HIGH);
         digitalWrite(6, 0);
         delay(1000);
         digitalWrite(LatchPinGREEN, LOW);
-        shiftOut(DataPinGREEN, ClockPinGREEN, byteOnGreen);
+        shiftOut(DataPinGREEN, ClockPinGREEN, ByteOnGreen);
         digitalWrite(LatchPinGREEN, HIGH);
         digitalWrite(6, ArrayForActiveLEDs[0]);
         delay(1000);
@@ -97,27 +67,34 @@ void Blink()
     else
     {
         digitalWrite(LatchPinRED, LOW);
-        shiftOut(DataPinRED, ClockPinRED, byteOffRed);
+        shiftOut(DataPinRED, ClockPinRED, ByteOffRed);
         digitalWrite(LatchPinRED, HIGH);
         digitalWrite(5, 0);
         delay(1000);
         digitalWrite(LatchPinRED, LOW);
-        shiftOut(DataPinRED, ClockPinRED, byteOnRed);
+        shiftOut(DataPinRED, ClockPinRED, ByteOnRed);
         digitalWrite(LatchPinRED, HIGH);
         digitalWrite(5, ArrayForActiveLEDs[0]);
         delay(1000);
     }
 }
+
 void ButtonLedSwitch()
 {
     int nextLED = FindNextLED();
-    ArrayForActiveLEDs[nextLED] = 3;
-
-    if (nextLED == 9)
+    if (nextLED != 0)
     {
-        // blink all
+        ArrayForActiveLEDs[nextLED] = 3;
     }
-    ParseArrayToString(isGreen);
+    else
+    {
+        ArrayForActiveLEDs[nextLED] = 1;
+    }
+
+    if (nextLED != 0)
+    {
+        ParseArrayToString(IsGreen);
+    }
 }
 
 int FindNextLED()
@@ -127,16 +104,15 @@ int FindNextLED()
     {
         if (ArrayForActiveLEDs[led] != 0)
         {
-            if (led == 0)
-            {
-                led = 8;
-            }
-            else
+            if (led >= 0)
             {
                 led--;
             }
+            if (led < 0)
+            {
+                led = 8;
+            }
         }
-        Serial.println(led);
     }
     ArrayForActiveLEDs[CurrentLED] = 0;
     CurrentLED = led;
@@ -147,28 +123,51 @@ void ButtonLedConfirm()
 {
     bool win = false;
 
-    if (isGreen)
+    if (IsGreen)
     {
-        isGreen = false;
+        IsGreen = false;
         win = (CheckForWin(ArrayForActiveLEDs, 1));
     }
     else
     {
-        isGreen = true;
+        IsGreen = true;
         win = (CheckForWin(ArrayForActiveLEDs, 2));
     }
-    Serial.println("Confirmed");
+
+    if (win)
+    {
+        detachInterrupt(digitalPinToInterrupt(2));
+        detachInterrupt(digitalPinToInterrupt(2));
+
+        while (win)
+        {
+            if (!IsGreen)
+            {
+                digitalWrite(LatchPinGREEN, LOW);
+                shiftOut(DataPinGREEN, ClockPinGREEN, ByteOnGreen);
+                digitalWrite(LatchPinGREEN, HIGH);
+                digitalWrite(6, ArrayForActiveLEDs[0]);
+            }
+            else
+            {
+                digitalWrite(LatchPinRED, LOW);
+                shiftOut(DataPinRED, ClockPinRED, ByteOnRed);
+                digitalWrite(LatchPinRED, HIGH);
+                digitalWrite(5, ArrayForActiveLEDs[0]);
+            }
+        }
+    }
 }
 
-void ParseArrayToString(bool isGreen)
+void ParseArrayToString(bool IsGreen)
 {
     String byteStringOnGreen = "";
     String byteStringOffGreen = "";
     String byteStringOnRed = "";
     String byteStringOffRed = "";
-    if (isGreen)
+    if (IsGreen)
     {
-        for (int i = 0; i < 9; i++)
+        for (int i = 1; i < 9; i++)
         {
             if (ArrayForActiveLEDs[i] == 0)
             {
@@ -191,10 +190,12 @@ void ParseArrayToString(bool isGreen)
                 byteStringOffGreen += '0';
             }
         }
+        ByteOffGreen = atoi(byteStringOffGreen.c_str());
+        ByteOnGreen = atoi(byteStringOnGreen.c_str());
     }
-    if (!isGreen)
+    else
     {
-        for (int i = 0; i < 9; i++)
+        for (int i = 1; i < 9; i++)
         {
             if (ArrayForActiveLEDs[i] == 0)
             {
@@ -217,54 +218,9 @@ void ParseArrayToString(bool isGreen)
                 byteStringOffRed += '0';
             }
         }
+        ByteOffRed = atoi(byteStringOffRed.c_str());
+        ByteOnRed = atoi(byteStringOnRed.c_str());
     }
-int a = atoi( byteStringOffGreen.c_str() );
-
-    byteOffGreen = a;
-    Serial.println(byteOffGreen + 'g');
-    /*byteOffGreen = PrintBitsSimple(byteStringOffGreen);
-    byteOnGreen = PrintBitsSimple(byteStringOnGreen);
-    byteOffRed = PrintBitsSimple(byteStringOffRed);
-    byteOnRed = PrintBitsSimple(byteStringOnRed);*/
-=======
-    if (isGreen)
-    {
-        digitalWrite(latchPinGREEN, LOW);
-        shiftOut(dataPinGREEN, clockPinGREEN, 0b111111111);
-        digitalWrite(latchPinGREEN, HIGH);
-        digitalWrite(6, ArrayForActiveLEDs[0]);
-        delay(1000);
-        digitalWrite(latchPinGREEN, LOW);
-        shiftOut(dataPinGREEN, clockPinGREEN, 0b00000000);
-        digitalWrite(latchPinGREEN, HIGH);
-        digitalWrite(6, 0);
-        delay(1000);
-    }
-    else
-    {
-        digitalWrite(latchPinGREEN, LOW);
-        shiftOut(dataPinGREEN, clockPinGREEN, 0b111111111);
-        digitalWrite(latchPinGREEN, HIGH);
-        digitalWrite(6, ArrayForActiveLEDs[0]);
-        delay(1000);
-        digitalWrite(latchPinGREEN, LOW);
-        shiftOut(dataPinGREEN, clockPinGREEN, 0b00000000);
-        digitalWrite(latchPinGREEN, HIGH);
-        digitalWrite(6, 0);
-        delay(1000);
-    }
-}
-
-void ButtonLedSwitch(){
-
-}
-
-void ButtonLedConfirm(){
-    if (CheckForWin(ArrayForActiveLEDs))
-    {
-        // allahu akbar
-    }
-
 }
 
 // the heart of the program
@@ -318,7 +274,6 @@ void shiftOut(int myDataPin, int myClockPin, byte myDataOut)
     digitalWrite(myClockPin, 0);
 }
 
-
 bool CheckForWin(int array[9], int color)
 {
     if (array[8] == color && array[7] == color && array[6] == color)
@@ -352,32 +307,5 @@ bool CheckForWin(int array[9], int color)
     else if (array[2] == color && array[4] == color && array[6] == color)
     {
         return true; // OL-UR diagonal
-=======
-bool CheckForWin(int array[9])
-{
-    switch (1)
-    {
-        //green
-        if (array[8] == 1 && array[7] == 1 && array[7] == 1)
-            return true; // UUU
-    /*case array{0,0,1,0,0,1,0,0,1}: return true; // LLL
-    case array{1,1,1,0,0,0,0,0,0}: return true; // OOO
-    case array{1,0,0,1,0,0,1,0,0}: return true; // RRR
-    case array{0,1,0,0,1,0,0,1,0}: return true; // MMM vertikal
-    case array{0,0,0,1,1,1,0,0,0}: return true; // MMM horizontal
-    case array{1,0,0,0,1,0,0,0,1}: return true; // OR-UL diagonal
-    case array{0,0,1,0,1,0,1,0,0}: return true; // OL-UR diagonal
-    //Red
-    case array{0,0,0,0,0,0,2,2,2}: return true; // UUU
-    case array{0,0,2,0,0,2,0,0,2}: return true; // LLL
-    case array{2,2,2,0,0,0,0,0,0}: return true; // OOO
-    case array{2,0,0,2,0,0,2,0,0}: return true; // RRR
-    case array{0,2,0,0,2,0,0,2,0}: return true; // MMM vertikal
-    case array{0,0,0,2,2,2,0,0,0}: return true; // MMM horizontal
-    case array{2,0,0,0,2,0,0,0,2}: return true; // OR-UL diagonal
-    case array{0,0,2,0,2,0,2,0,0}: return true; // OL-UR diagonal*/
-    default:
-        return false;
-
     }
 }
