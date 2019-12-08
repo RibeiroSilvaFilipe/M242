@@ -1,4 +1,5 @@
 // Array begins top right to bottom left
+
 // 0 = off
 // 1 = green
 // 2 = red
@@ -21,11 +22,25 @@ int byteOnGreen;
 byte byteOffGreen;
 byte byteOnRed;
 byte byteOffRed;
+=======
+int ArrayForActiveLEDs[9] = {1, 0, 0, 0, 0, 0, 0, 0, 0};
+
+int latchPinRED = 8;
+int clockPinRED = 13;
+int dataPinRED = 11;
+
+int latchPinGREEN = 7;
+int clockPinGREEN = 12;
+int dataPinGREEN = 10;
+
+bool isGreen = true;
+
 
 void setup()
 {
     Serial.begin(9600);
     // shift red
+
     pinMode(LatchPinGREEN, OUTPUT);
     pinMode(DataPinRED, OUTPUT);
     pinMode(ClockPinRED, OUTPUT);
@@ -41,10 +56,26 @@ void setup()
     pinMode(3, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(2), ButtonLedSwitch, FALLING);
     attachInterrupt(digitalPinToInterrupt(3), ButtonLedConfirm, FALLING);
+=======
+    pinMode(latchPinRED, OUTPUT);
+    pinMode(dataPinRED, OUTPUT);
+    pinMode(clockPinRED, OUTPUT);
+    // shift green
+    pinMode(latchPinGREEN, OUTPUT);
+    pinMode(dataPinGREEN, OUTPUT);
+    pinMode(clockPinGREEN, OUTPUT);
+    // single leds
+    pinMode(5, OUTPUT); // red OR
+    pinMode(6, OUTPUT); // green OR
+    // buttons, 3 = next, 4 = confirm
+    attachInterrupt(0, ButtonLedSwitch, CHANGE);
+    attachInterrupt(1, ButtonLedConfirm, CHANGE);
+
 }
 
 void loop()
 {
+
     Blink();
 }
 
@@ -195,6 +226,45 @@ int a = atoi( byteStringOffGreen.c_str() );
     byteOnGreen = PrintBitsSimple(byteStringOnGreen);
     byteOffRed = PrintBitsSimple(byteStringOffRed);
     byteOnRed = PrintBitsSimple(byteStringOnRed);*/
+=======
+    if (isGreen)
+    {
+        digitalWrite(latchPinGREEN, LOW);
+        shiftOut(dataPinGREEN, clockPinGREEN, 0b111111111);
+        digitalWrite(latchPinGREEN, HIGH);
+        digitalWrite(6, ArrayForActiveLEDs[0]);
+        delay(1000);
+        digitalWrite(latchPinGREEN, LOW);
+        shiftOut(dataPinGREEN, clockPinGREEN, 0b00000000);
+        digitalWrite(latchPinGREEN, HIGH);
+        digitalWrite(6, 0);
+        delay(1000);
+    }
+    else
+    {
+        digitalWrite(latchPinGREEN, LOW);
+        shiftOut(dataPinGREEN, clockPinGREEN, 0b111111111);
+        digitalWrite(latchPinGREEN, HIGH);
+        digitalWrite(6, ArrayForActiveLEDs[0]);
+        delay(1000);
+        digitalWrite(latchPinGREEN, LOW);
+        shiftOut(dataPinGREEN, clockPinGREEN, 0b00000000);
+        digitalWrite(latchPinGREEN, HIGH);
+        digitalWrite(6, 0);
+        delay(1000);
+    }
+}
+
+void ButtonLedSwitch(){
+
+}
+
+void ButtonLedConfirm(){
+    if (CheckForWin(ArrayForActiveLEDs))
+    {
+        // allahu akbar
+    }
+
 }
 
 // the heart of the program
@@ -248,6 +318,7 @@ void shiftOut(int myDataPin, int myClockPin, byte myDataOut)
     digitalWrite(myClockPin, 0);
 }
 
+
 bool CheckForWin(int array[9], int color)
 {
     if (array[8] == color && array[7] == color && array[6] == color)
@@ -281,5 +352,32 @@ bool CheckForWin(int array[9], int color)
     else if (array[2] == color && array[4] == color && array[6] == color)
     {
         return true; // OL-UR diagonal
+=======
+bool CheckForWin(int array[9])
+{
+    switch (1)
+    {
+        //green
+        if (array[8] == 1 && array[7] == 1 && array[7] == 1)
+            return true; // UUU
+    /*case array{0,0,1,0,0,1,0,0,1}: return true; // LLL
+    case array{1,1,1,0,0,0,0,0,0}: return true; // OOO
+    case array{1,0,0,1,0,0,1,0,0}: return true; // RRR
+    case array{0,1,0,0,1,0,0,1,0}: return true; // MMM vertikal
+    case array{0,0,0,1,1,1,0,0,0}: return true; // MMM horizontal
+    case array{1,0,0,0,1,0,0,0,1}: return true; // OR-UL diagonal
+    case array{0,0,1,0,1,0,1,0,0}: return true; // OL-UR diagonal
+    //Red
+    case array{0,0,0,0,0,0,2,2,2}: return true; // UUU
+    case array{0,0,2,0,0,2,0,0,2}: return true; // LLL
+    case array{2,2,2,0,0,0,0,0,0}: return true; // OOO
+    case array{2,0,0,2,0,0,2,0,0}: return true; // RRR
+    case array{0,2,0,0,2,0,0,2,0}: return true; // MMM vertikal
+    case array{0,0,0,2,2,2,0,0,0}: return true; // MMM horizontal
+    case array{2,0,0,0,2,0,0,0,2}: return true; // OR-UL diagonal
+    case array{0,0,2,0,2,0,2,0,0}: return true; // OL-UR diagonal*/
+    default:
+        return false;
+
     }
 }
