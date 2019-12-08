@@ -38,7 +38,6 @@ winnerFunc(array ArrayForActiveLEDs){
 }
 */
 
-
 /*
 currentled-- --> nächste led, 
 wenn currentled == 8 --> letzte led blinkt
@@ -52,3 +51,4 @@ else
         generatestring()
 }
 */
+=======
