@@ -136,6 +136,7 @@ void ButtonLedConfirm()
 
     if (win)
     {
+        // todo: comment detachInterrupts for debug, find out why win gets always true
         detachInterrupt(digitalPinToInterrupt(2));
         detachInterrupt(digitalPinToInterrupt(2));
 
