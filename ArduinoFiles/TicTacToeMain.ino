@@ -51,15 +51,15 @@ void loop()
 
 void Blink()
 {
-    if (isGreen)
+    if (IsGreen)
     {
         digitalWrite(LatchPinGREEN, LOW);
-        shiftOut(DataPinGREEN, ClockPinGREEN, byteOffGreen);
+        shiftOut(DataPinGREEN, ClockPinGREEN, ByteOffGreen);
         digitalWrite(LatchPinGREEN, HIGH);
         digitalWrite(6, 0);
         delay(1000);
         digitalWrite(LatchPinGREEN, LOW);
-        shiftOut(DataPinGREEN, ClockPinGREEN, byteOnGreen);
+        shiftOut(DataPinGREEN, ClockPinGREEN, ByteOnGreen);
         digitalWrite(LatchPinGREEN, HIGH);
         digitalWrite(6, ArrayForActiveLEDs[0]);
         delay(1000);
@@ -67,27 +67,34 @@ void Blink()
     else
     {
         digitalWrite(LatchPinRED, LOW);
-        shiftOut(DataPinRED, ClockPinRED, byteOffRed);
+        shiftOut(DataPinRED, ClockPinRED, ByteOffRed);
         digitalWrite(LatchPinRED, HIGH);
         digitalWrite(5, 0);
         delay(1000);
         digitalWrite(LatchPinRED, LOW);
-        shiftOut(DataPinRED, ClockPinRED, byteOnRed);
+        shiftOut(DataPinRED, ClockPinRED, ByteOnRed);
         digitalWrite(LatchPinRED, HIGH);
         digitalWrite(5, ArrayForActiveLEDs[0]);
         delay(1000);
     }
 }
+
 void ButtonLedSwitch()
 {
     int nextLED = FindNextLED();
-    ArrayForActiveLEDs[nextLED] = 3;
-
-    if (nextLED == 9)
+    if (nextLED != 0)
     {
-        // blink all
+        ArrayForActiveLEDs[nextLED] = 3;
     }
-    ParseArrayToString(isGreen);
+    else
+    {
+        ArrayForActiveLEDs[nextLED] = 1;
+    }
+
+    if (nextLED != 0)
+    {
+        ParseArrayToString(IsGreen);
+    }
 }
 
 int FindNextLED()
@@ -97,16 +104,15 @@ int FindNextLED()
     {
         if (ArrayForActiveLEDs[led] != 0)
         {
-            if (led == 0)
-            {
-                led = 8;
-            }
-            else
+            if (led >= 0)
             {
                 led--;
             }
+            if (led < 0)
+            {
+                led = 8;
+            }
         }
-        Serial.println(led);
     }
     ArrayForActiveLEDs[CurrentLED] = 0;
     CurrentLED = led;
@@ -117,28 +123,51 @@ void ButtonLedConfirm()
 {
     bool win = false;
 
-    if (isGreen)
+    if (IsGreen)
     {
-        isGreen = false;
+        IsGreen = false;
         win = (CheckForWin(ArrayForActiveLEDs, 1));
     }
     else
     {
-        isGreen = true;
+        IsGreen = true;
         win = (CheckForWin(ArrayForActiveLEDs, 2));
     }
-    Serial.println("Confirmed");
+
+    if (win)
+    {
+        detachInterrupt(digitalPinToInterrupt(2));
+        detachInterrupt(digitalPinToInterrupt(2));
+
+        while (win)
+        {
+            if (!IsGreen)
+            {
+                digitalWrite(LatchPinGREEN, LOW);
+                shiftOut(DataPinGREEN, ClockPinGREEN, ByteOnGreen);
+                digitalWrite(LatchPinGREEN, HIGH);
+                digitalWrite(6, ArrayForActiveLEDs[0]);
+            }
+            else
+            {
+                digitalWrite(LatchPinRED, LOW);
+                shiftOut(DataPinRED, ClockPinRED, ByteOnRed);
+                digitalWrite(LatchPinRED, HIGH);
+                digitalWrite(5, ArrayForActiveLEDs[0]);
+            }
+        }
+    }
 }
 
-void ParseArrayToString(bool isGreen)
+void ParseArrayToString(bool IsGreen)
 {
     String byteStringOnGreen = "";
     String byteStringOffGreen = "";
     String byteStringOnRed = "";
     String byteStringOffRed = "";
-    if (isGreen)
+    if (IsGreen)
     {
-        for (int i = 0; i < 9; i++)
+        for (int i = 1; i < 9; i++)
         {
             if (ArrayForActiveLEDs[i] == 0)
             {
@@ -161,10 +190,12 @@ void ParseArrayToString(bool isGreen)
                 byteStringOffGreen += '0';
             }
         }
+        ByteOffGreen = atoi(byteStringOffGreen.c_str());
+        ByteOnGreen = atoi(byteStringOnGreen.c_str());
     }
-    if (!isGreen)
+    else
     {
-        for (int i = 0; i < 9; i++)
+        for (int i = 1; i < 9; i++)
         {
             if (ArrayForActiveLEDs[i] == 0)
             {
@@ -187,11 +218,9 @@ void ParseArrayToString(bool isGreen)
                 byteStringOffRed += '0';
             }
         }
+        ByteOffRed = atoi(byteStringOffRed.c_str());
+        ByteOnRed = atoi(byteStringOnRed.c_str());
     }
-    ByteOffGreen = atoi( byteStringOffGreen.c_str() );
-    ByteOnGreen = atoi( byteStringOnGreen.c_str() );
-    ByteOffRed = atoi( byteStringOffRed.c_str() );
-    ByteOnRed = atoi( byteStringOnRed.c_str() );
 }
 
 // the heart of the program
