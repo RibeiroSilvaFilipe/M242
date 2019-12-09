@@ -27,7 +27,7 @@ void setup()
 {
     Serial.begin(9600);
     // shift red
-    pinMode(LatchPinGREEN, OUTPUT);
+    pinMode(LatchPinRED, OUTPUT);
     pinMode(DataPinRED, OUTPUT);
     pinMode(ClockPinRED, OUTPUT);
     // shift green
@@ -47,6 +47,14 @@ void setup()
 void loop()
 {
     Blink();
+    for (int i = 0; i < 9; i++)
+    {
+        Serial.print(ArrayForActiveLEDs[i]);
+    }
+    Serial.println("");
+    Serial.println(ByteOnRed);
+    Serial.println(ByteOffRed);
+    Serial.println("");
 }
 
 void Blink()
@@ -91,10 +99,7 @@ void ButtonLedSwitch()
         ArrayForActiveLEDs[nextLED] = 1;
     }
 
-    if (nextLED != 0)
-    {
-        ParseArrayToString(IsGreen);
-    }
+    ParseArrayToString(IsGreen);
 }
 
 int FindNextLED()
@@ -134,7 +139,7 @@ void ButtonLedConfirm()
         win = (CheckForWin(ArrayForActiveLEDs, 2));
     }
 
-    if (win)
+    /*if (win)
     {
         // todo: comment detachInterrupts for debug, find out why win gets always true
         detachInterrupt(digitalPinToInterrupt(2));
@@ -157,71 +162,87 @@ void ButtonLedConfirm()
                 digitalWrite(5, ArrayForActiveLEDs[0]);
             }
         }
-    }
+    }*/
 }
 
 void ParseArrayToString(bool IsGreen)
 {
-    String byteStringOnGreen = "";
-    String byteStringOffGreen = "";
-    String byteStringOnRed = "";
-    String byteStringOffRed = "";
+    int byteStringOnGreen = 0;
+    int byteStringOffGreen = 0;
+    int byteStringOnRed = 0;
+    int byteStringOffRed = 0;
+    int power = 0;
     if (IsGreen)
     {
-        for (int i = 1; i < 9; i++)
+        for (int i = 8; i > 0; i--)
         {
             if (ArrayForActiveLEDs[i] == 0)
             {
-                byteStringOnGreen += '0';
-                byteStringOffGreen += '0';
+                byteStringOnGreen += 0;
+                byteStringOffGreen += 0;
             }
             if (ArrayForActiveLEDs[i] == 1)
             {
-                byteStringOnGreen += '1';
-                byteStringOffGreen += '1';
+                byteStringOnGreen += pow_int(2, power);
+                byteStringOffGreen += pow_int(2, power);
             }
             if (ArrayForActiveLEDs[i] == 2)
             {
-                byteStringOnGreen += '0';
-                byteStringOffGreen += '0';
+                byteStringOnGreen += 0;
+                byteStringOffGreen += 0;
             }
             if (ArrayForActiveLEDs[i] == 3)
             {
-                byteStringOnGreen += '1';
-                byteStringOffGreen += '0';
+                byteStringOnGreen += pow_int(2, power);
+                byteStringOffGreen += 0;
             }
+            power++;
         }
-        ByteOffGreen = atoi(byteStringOffGreen.c_str());
-        ByteOnGreen = atoi(byteStringOnGreen.c_str());
+
+        ByteOffGreen = byteStringOffGreen;
+        ByteOnGreen = byteStringOnGreen;
     }
     else
     {
-        for (int i = 1; i < 9; i++)
+        for (int i = 8; i > 0; i--)
         {
             if (ArrayForActiveLEDs[i] == 0)
             {
-                byteStringOnRed += '0';
-                byteStringOffRed += '0';
+                byteStringOnRed += 0;
+                byteStringOffRed += 0;
             }
             if (ArrayForActiveLEDs[i] == 1)
             {
-                byteStringOnRed += '0';
-                byteStringOffRed += '0';
+                byteStringOnRed += 0;
+                byteStringOffRed += 0;
             }
             if (ArrayForActiveLEDs[i] == 2)
             {
-                byteStringOnRed += '1';
-                byteStringOffRed += '1';
+                byteStringOnRed += pow_int(2, power);
+                byteStringOffRed += pow_int(2, power);
             }
             if (ArrayForActiveLEDs[i] == 3)
             {
-                byteStringOnRed += '1';
-                byteStringOffRed += '0';
+                byteStringOnRed += pow_int(2, power);
+                byteStringOffRed += 0;
             }
+            power++;
         }
-        ByteOffRed = atoi(byteStringOffRed.c_str());
-        ByteOnRed = atoi(byteStringOnRed.c_str());
+        ByteOffRed = byteStringOffRed;
+        ByteOnRed = byteStringOnRed;
     }
+    Serial.println("parse");
+}
+
+int pow_int(int x, unsigned int n)
+{
+    int res = 1;
+
+    for (unsigned int i = 0; i != n; ++i)
+    {
+        res *= x;
+    }
+    return res;
 }
 
 // the heart of the program
