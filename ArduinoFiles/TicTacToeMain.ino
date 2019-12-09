@@ -1,27 +1,30 @@
-// Array begins top right to bottom left
+// array begins with the single LED, [1] - [8] are shift registers
 // 0 = off
 // 1 = green
 // 2 = red
 // 3 = blink
-int ArrayForActiveLEDs[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+// helper variables
+int ArrayForActiveLEDs[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0}; // main array
 int CurrentLED = 8;
-int PinButtonLedSwitch = 2;
-int PinButtonLedConfirm = 3;
-
-int LatchPinRED = 8;
-int ClockPinRED = 13;
-int DataPinRED = 11;
-
-int LatchPinGREEN = 7;
-int ClockPinGREEN = 12;
-int DataPinGREEN = 10;
-
 bool Led9 = false;
 bool IsGreen = true;
 int ByteOnGreen;
 int ByteOffGreen;
 int ByteOnRed;
 int ByteOffRed;
+
+// pin variables
+int PinButtonLedSwitch = 2;
+int PinButtonLedConfirm = 3;
+// red
+int LatchPinRED = 8;
+int ClockPinRED = 13;
+int DataPinRED = 11;
+// green
+int LatchPinGREEN = 7;
+int ClockPinGREEN = 12;
+int DataPinGREEN = 10;
 
 void setup()
 {
@@ -40,24 +43,23 @@ void setup()
     // buttons, 2 = next, 3 = confirm
     pinMode(2, INPUT_PULLUP);
     pinMode(3, INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(2), ButtonLedSwitch, FALLING);
-    attachInterrupt(digitalPinToInterrupt(3), ButtonLedConfirm, FALLING);
+    // add buttons as interrupts
+    attachInterrupt(digitalPinToInterrupt(PinButtonLedSwitch), ButtonLedSwitch, FALLING);
+    attachInterrupt(digitalPinToInterrupt(PinButtonLedConfirm), ButtonLedConfirm, FALLING);
 }
 
 void loop()
 {
     Blink();
-    for (int i = 0; i < 9; i++)
-    {
-        Serial.print(ArrayForActiveLEDs[i]);
-    }
-    Serial.println("");
 }
 
+// blinks currently selected LED
 void Blink()
 {
+    // blink differently depending on player, handled by IsGreen
     if (IsGreen)
     {
+        // turn off selected LED
         digitalWrite(LatchPinGREEN, LOW);
         shiftOut(DataPinGREEN, ClockPinGREEN, ByteOffGreen);
         digitalWrite(LatchPinGREEN, HIGH);
@@ -71,6 +73,8 @@ void Blink()
             digitalWrite(6, 0);
         }
         delay(1000);
+
+        // turn on selected LED
         digitalWrite(LatchPinGREEN, LOW);
         shiftOut(DataPinGREEN, ClockPinGREEN, ByteOnGreen);
         digitalWrite(LatchPinGREEN, HIGH);
@@ -87,6 +91,7 @@ void Blink()
     }
     else
     {
+        // turn off selected LED
         digitalWrite(LatchPinRED, LOW);
         shiftOut(DataPinRED, ClockPinRED, ByteOffRed);
         digitalWrite(LatchPinRED, HIGH);
@@ -100,6 +105,8 @@ void Blink()
             digitalWrite(5, 0);
         }
         delay(1000);
+
+        // turn on selected LED
         digitalWrite(LatchPinRED, LOW);
         shiftOut(DataPinRED, ClockPinRED, ByteOnRed);
         digitalWrite(LatchPinRED, HIGH);
@@ -116,10 +123,12 @@ void Blink()
     }
 }
 
+// interrupt to switch selected LED
 void ButtonLedSwitch()
 {
     AvoidMultipleInput();
     int nextLED = FindNextLED();
+
     if (nextLED != 0)
     {
         ArrayForActiveLEDs[nextLED] = 3;
@@ -130,9 +139,9 @@ void ButtonLedSwitch()
     }
 
     ParseArrayToString(IsGreen);
-    Serial.println("parse");
 }
 
+// get next LED that is still available
 int FindNextLED()
 {
     int led = CurrentLED;
@@ -150,26 +159,61 @@ int FindNextLED()
             }
         }
     }
+
     if (ArrayForActiveLEDs[CurrentLED] == 3)
     {
         ArrayForActiveLEDs[CurrentLED] = 0;
     }
+
     CurrentLED = led;
     return led;
 }
 
+// de- and reattaches interrupts to avoid multiple button inputs at once
 void AvoidMultipleInput()
 {
-    detachInterrupt(digitalPinToInterrupt(2));
-    detachInterrupt(digitalPinToInterrupt(3));
+    detachInterrupt(digitalPinToInterrupt(PinButtonLedSwitch));
+    detachInterrupt(digitalPinToInterrupt(PinButtonLedConfirm));
     delay(500);
-    attachInterrupt(digitalPinToInterrupt(2), ButtonLedSwitch, FALLING);
-    attachInterrupt(digitalPinToInterrupt(3), ButtonLedConfirm, FALLING);
+    attachInterrupt(digitalPinToInterrupt(PinButtonLedSwitch), ButtonLedSwitch, FALLING);
+    attachInterrupt(digitalPinToInterrupt(PinButtonLedConfirm), ButtonLedConfirm, FALLING);
 }
 
+// interrupt to save selected led into array
+// executes check if match has ended
 void ButtonLedConfirm()
 {
     AvoidMultipleInput();
+    bool win = SwitchPlayerAndCheckForWin();
+
+    if (win)
+    {
+        DetachInterrupts();
+        SwitchWinnerLEDs();
+    }
+    else
+    {
+        bool tie = CheckForTie();
+        if (tie)
+        {
+            DetachInterrupts();
+            Serial.println("Tie!");
+        }
+    }
+}
+
+// detaches interrupts to deactivate buttons after game ends
+void DetachInterrupts()
+{
+    detachInterrupt(digitalPinToInterrupt(PinButtonLedSwitch));
+    detachInterrupt(digitalPinToInterrupt(PinButtonLedConfirm));
+}
+
+// saves selected led into array with correct value
+// switches the player
+// executes check if match has ended
+bool SwitchPlayerAndCheckForWin()
+{
     bool win = false;
 
     if (IsGreen)
@@ -186,58 +230,65 @@ void ButtonLedConfirm()
     }
     CurrentLED--;
     ParseArrayToString(IsGreen);
+    return win;
+}
 
-    if (win)
+// turns on winning player's LEDs
+// turns off losing player's LEDs
+void SwitchWinnerLEDs()
+{
+    // checks which player is the winner depending on the active player
+    // changed after the last input
+    if (!IsGreen)
     {
-        detachInterrupt(digitalPinToInterrupt(2));
-        detachInterrupt(digitalPinToInterrupt(3));
-
-        while (true)
+        digitalWrite(LatchPinRED, LOW);
+        shiftOut(DataPinRED, ClockPinRED, 0b00000000);
+        digitalWrite(LatchPinRED, HIGH);
+        if (ArrayForActiveLEDs[0] == 0 || ArrayForActiveLEDs[0] == 2)
         {
-            if (!IsGreen)
-            {
-                digitalWrite(LatchPinGREEN, LOW);
-                shiftOut(DataPinGREEN, ClockPinGREEN, ByteOffGreen);
-                digitalWrite(LatchPinGREEN, HIGH);
-                if (ArrayForActiveLEDs[0] == 0 || ArrayForActiveLEDs[0] == 2)
-                {
-                    digitalWrite(5, 0);
-                }
-                delay(1000);
-
-                digitalWrite(LatchPinGREEN, LOW);
-                shiftOut(DataPinGREEN, ClockPinGREEN, ByteOnGreen);
-                digitalWrite(LatchPinGREEN, HIGH);
-                if (ArrayForActiveLEDs[0] == 2)
-                {
-                    digitalWrite(5, 1);
-                }
-            
-            }
-            else
-            {
-                digitalWrite(LatchPinRED, LOW);
-                shiftOut(DataPinRED, ClockPinRED, ByteOffRed);
-                digitalWrite(LatchPinRED, HIGH);
-                if (ArrayForActiveLEDs[0] == 0 || ArrayForActiveLEDs[0] == 1)
-                {
-                    digitalWrite(6, 0);
-                }
-                delay(1000);
-
-                digitalWrite(LatchPinRED, LOW);
-                shiftOut(DataPinRED, ClockPinRED, ByteOnRed);
-                digitalWrite(LatchPinRED, HIGH);
-                if (ArrayForActiveLEDs[0] == 1)
-                {
-                    digitalWrite(6, 1);
-                }
-            }
-            delay(1000);
+            digitalWrite(5, 0);
         }
+
+        digitalWrite(LatchPinGREEN, LOW);
+        shiftOut(DataPinGREEN, ClockPinGREEN, ByteOnGreen);
+        digitalWrite(LatchPinGREEN, HIGH);
+        if (ArrayForActiveLEDs[0] == 2)
+        {
+            digitalWrite(5, 1);
+        }
+        // winner announcement
+        Serial.println("Green wins");
+    }
+    else
+    {
+        digitalWrite(LatchPinGREEN, LOW);
+        shiftOut(DataPinGREEN, ClockPinGREEN, 0b00000000);
+        digitalWrite(LatchPinGREEN, HIGH);
+        if (ArrayForActiveLEDs[0] == 0 || ArrayForActiveLEDs[0] == 1)
+        {
+            digitalWrite(6, 0);
+        }
+
+        digitalWrite(LatchPinRED, LOW);
+        shiftOut(DataPinRED, ClockPinRED, ByteOnRed);
+        digitalWrite(LatchPinRED, HIGH);
+        if (ArrayForActiveLEDs[0] == 1)
+        {
+            digitalWrite(6, 1);
+        }
+
+        // winner announcement
+        Serial.println("Red wins");
+    }
+
+    // prevents the program from continuing to blink LEDs
+    while (true)
+    {
     }
 }
 
+// creates different int type values depending on
+// the values and positions saved in the main array
 void ParseArrayToString(bool IsGreen)
 {
     int byteStringOnGreen = 0;
@@ -245,6 +296,8 @@ void ParseArrayToString(bool IsGreen)
     int byteStringOnRed = 0;
     int byteStringOffRed = 0;
     int power = 0;
+
+    // only creates the necessary values
     if (IsGreen)
     {
         for (int i = 8; i > 0; i--)
@@ -272,6 +325,7 @@ void ParseArrayToString(bool IsGreen)
             power++;
         }
 
+        // assignes created values to properties
         ByteOffGreen = byteStringOffGreen;
         ByteOnGreen = byteStringOnGreen;
     }
@@ -301,11 +355,14 @@ void ParseArrayToString(bool IsGreen)
             }
             power++;
         }
+
+        // assignes created values to properties
         ByteOffRed = byteStringOffRed;
         ByteOnRed = byteStringOnRed;
     }
 }
 
+// method to calculate x^n, because the integrated pow() function returns rounding mistakes
 int pow_int(int x, unsigned int n)
 {
     int res = 1;
@@ -317,7 +374,7 @@ int pow_int(int x, unsigned int n)
     return res;
 }
 
-// the heart of the program
+// sends the value to light the LEDs to the shift-register
 void shiftOut(int myDataPin, int myClockPin, byte myDataOut)
 {
     // This shifts 8 bits out MSB first,
@@ -335,7 +392,7 @@ void shiftOut(int myDataPin, int myClockPin, byte myDataOut)
     digitalWrite(myDataPin, 0);
     digitalWrite(myClockPin, 0);
 
-    //for each bit in the byte myDataOut�
+    //for each bit in the byte myDataOut
     //NOTICE THAT WE ARE COUNTING DOWN in our for loop
     //This means that %00000001 or "1" will go through such
     //that it will be pin Q0 that lights.
@@ -368,6 +425,7 @@ void shiftOut(int myDataPin, int myClockPin, byte myDataOut)
     digitalWrite(myClockPin, 0);
 }
 
+// checks if there is currently a winning combination in the main array
 bool CheckForWin(int array[9], int color)
 {
     if (array[8] == color && array[7] == color && array[6] == color)
@@ -406,4 +464,18 @@ bool CheckForWin(int array[9], int color)
     {
         return false;
     }
+}
+
+// checks if all positions of the arrey have been filled
+// game can no longer continue
+bool CheckForTie()
+{
+    for (int i = 0; i < 9; i++)
+    {
+        if (ArrayForActiveLEDs[i] == 0)
+        {
+            return false;
+        }
+    }
+    return true;
 }
